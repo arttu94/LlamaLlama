@@ -9,6 +9,10 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
 
+#include "Net/UnrealNetwork.h"
+
+#include "Public/BaseItem.h"
+
 //////////////////////////////////////////////////////////////////////////
 // ALlamaLlamaCharacter
 
@@ -30,7 +34,7 @@ ALlamaLlamaCharacter::ALlamaLlamaCharacter()
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
 	GetCharacterMovement()->JumpZVelocity = 600.f;
-	GetCharacterMovement()->AirControl = 0.2f;
+	GetCharacterMovement()->AirControl = 1.0f;
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -74,6 +78,11 @@ void ALlamaLlamaCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 
 	// VR headset functionality
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ALlamaLlamaCharacter::OnResetVR);
+
+	PlayerInputComponent->BindAction("PickUp", IE_Pressed, this, &ALlamaLlamaCharacter::PickUp);
+	PlayerInputComponent->BindAction("PrimaryAction", IE_Pressed, this, &ALlamaLlamaCharacter::PrimaryAction);
+	PlayerInputComponent->BindAction("SecondaryAction", IE_Pressed, this, &ALlamaLlamaCharacter::SecondaryAction);
+
 }
 
 
@@ -84,12 +93,12 @@ void ALlamaLlamaCharacter::OnResetVR()
 
 void ALlamaLlamaCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
-		Jump();
+	Jump();
 }
 
 void ALlamaLlamaCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
 {
-		StopJumping();
+	StopJumping();
 }
 
 void ALlamaLlamaCharacter::TurnAtRate(float Rate)
@@ -120,15 +129,128 @@ void ALlamaLlamaCharacter::MoveForward(float Value)
 
 void ALlamaLlamaCharacter::MoveRight(float Value)
 {
-	if ( (Controller != NULL) && (Value != 0.0f) )
+	if ((Controller != NULL) && (Value != 0.0f))
 	{
 		// find out which way is right
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
-	
+
 		// get right vector 
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
 	}
+}
+
+bool ALlamaLlamaCharacter::Server_OnPickUp_Validate()
+{
+	return true;
+}
+
+void ALlamaLlamaCharacter::Server_OnPickUp_Implementation()
+{
+	PickUp();
+}
+
+void ALlamaLlamaCharacter::PickUp()
+{
+	TArray<AActor*> actors;
+	GetOverlappingActors(actors);
+
+	if (this->item == nullptr)
+	{
+		for (auto& actor : actors)
+		{
+			//if cast, it's an item you can pickup
+			if (ABaseItem * overlappingItem = Cast<ABaseItem>(actor))
+			{
+				if (overlappingItem->carrier == nullptr)
+				{
+					if (Role < ROLE_Authority)
+					{
+						Server_OnPickUp();
+					}
+					else
+					{
+						this->item = overlappingItem;
+						this->item->OnPickUp(this);
+						OnRep_item();
+					}
+				}
+			}
+		}
+	}
+}
+
+void ALlamaLlamaCharacter::OnRep_item()
+{
+	if (item)
+	{
+		//there is an item being held
+		//add move ignore 
+		MoveIgnoreActorAdd(item);
+	}
+	else
+	{
+		//the item is null
+		//remove all move ignore
+		GetCapsuleComponent()->ClearMoveIgnoreActors();
+	}
+}
+
+bool ALlamaLlamaCharacter::Server_PrimaryAction_Validate()
+{
+	return true;
+}
+
+void ALlamaLlamaCharacter::Server_PrimaryAction_Implementation()
+{
+	PrimaryAction();
+}
+
+void ALlamaLlamaCharacter::PrimaryAction()
+{
+	if (Role < ROLE_Authority)
+	{
+		Server_PrimaryAction();
+	}
+	else
+	{
+		if (item)
+		{
+			item->OnPrimaryAction();
+		}
+	}
+}
+
+bool ALlamaLlamaCharacter::Server_SecondaryAction_Validate()
+{
+	return true;
+}
+
+void ALlamaLlamaCharacter::Server_SecondaryAction_Implementation()
+{
+	SecondaryAction();
+}
+
+void ALlamaLlamaCharacter::SecondaryAction()
+{
+	if (Role < ROLE_Authority)
+	{
+		Server_SecondaryAction();
+	}
+	else
+	{
+		if (item)
+		{
+			item->OnSecondaryAction();
+		}
+	}
+}
+
+void ALlamaLlamaCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ALlamaLlamaCharacter, item);
 }

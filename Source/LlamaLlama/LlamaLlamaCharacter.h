@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "LlamaLlamaCharacter.generated.h"
 
+class ABaseItem;
+
 UCLASS(config=Game)
 class ALlamaLlamaCharacter : public ACharacter
 {
@@ -57,6 +59,30 @@ protected:
 
 	/** Handler for when a touch input stops. */
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
+
+	UFUNCTION(Server, reliable, WithValidation)
+	void Server_OnPickUp();
+
+	UFUNCTION()
+	void PickUp();
+
+	UPROPERTY(ReplicatedUsing=OnRep_item, VisibleAnywhere, BlueprintReadWrite)
+	ABaseItem* item;
+
+	UFUNCTION(BlueprintCallable)
+	void OnRep_item();
+
+	UFUNCTION(Server, reliable, WithValidation)
+	void Server_PrimaryAction();
+
+	UFUNCTION()
+	void PrimaryAction();
+
+	UFUNCTION(Server, reliable, WithValidation)
+	void Server_SecondaryAction();
+
+	UFUNCTION()
+	void SecondaryAction();
 
 protected:
 	// APawn interface
