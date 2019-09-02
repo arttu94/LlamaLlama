@@ -91,6 +91,12 @@ protected:
 	bool bStunned;
 
 	UFUNCTION()
+	void StunLlama();
+
+	UFUNCTION(Server, reliable, WithValidation)
+	void Server_StunLlama();
+
+	UFUNCTION()
 	void StunOtherLlama(ALlamaLlamaCharacter* otherLlama);
 
 	UFUNCTION(Server, reliable, WithValidation)

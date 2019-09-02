@@ -54,7 +54,7 @@ ALlamaLlamaCharacter::ALlamaLlamaCharacter()
 	leftHandPushSphere->SetSphereRadius(5.f);
 	leftHandPushSphere->SetGenerateOverlapEvents(true);
 	leftHandPushSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
-	leftHandPushSphere->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale,"push_socket_L");
+	leftHandPushSphere->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "push_socket_L");
 
 	rightHandPushSphere = CreateDefaultSubobject<USphereComponent>(TEXT("Right Hand Sphere"));
 	rightHandPushSphere->SetSphereRadius(5.f);
@@ -128,7 +128,7 @@ void ALlamaLlamaCharacter::OnHandPushHit(UPrimitiveComponent* OverlappedComp, AA
 {
 	if (OtherActor != this)
 	{
-		if (ALlamaLlamaCharacter* llama = Cast<ALlamaLlamaCharacter>(OtherActor))
+		if (ALlamaLlamaCharacter * llama = Cast<ALlamaLlamaCharacter>(OtherActor))
 		{
 			//llama->bStunned = true;
 			StunOtherLlama(llama);
@@ -141,27 +141,6 @@ void ALlamaLlamaCharacter::OnHandPushHit(UPrimitiveComponent* OverlappedComp, AA
 bool ALlamaLlamaCharacter::Server_StunOtherLlama_Validate(ALlamaLlamaCharacter* otherLlama)
 {
 	return true;
-}
-
-void ALlamaLlamaCharacter::Server_StunOtherLlama_Implementation(ALlamaLlamaCharacter* otherLlama)
-{
-	StunOtherLlama(otherLlama);
-}
-
-void ALlamaLlamaCharacter::StunOtherLlama(ALlamaLlamaCharacter* otherLlama)
-{
-	if (Role < ROLE_Authority)
-	{
-		Server_StunOtherLlama(otherLlama);
-	}
-	else if (Role == ROLE_Authority)
-	{
-		//bStunned = true;
-		if (bPushing)
-		{
-			otherLlama->bStunned = true;
-		}
-	}
 }
 
 void ALlamaLlamaCharacter::TurnAtRate(float Rate)
@@ -205,6 +184,56 @@ void ALlamaLlamaCharacter::MoveRight(float Value)
 	}
 }
 
+bool ALlamaLlamaCharacter::Server_StunLlama_Validate()
+{
+	return true;
+}
+
+void ALlamaLlamaCharacter::Server_StunLlama_Implementation()
+{
+	StunLlama();
+}
+
+void ALlamaLlamaCharacter::StunLlama()
+{
+	if (Role < ROLE_Authority)
+	{
+		Server_StunLlama();
+	}
+	else if (Role == ROLE_Authority)
+	{
+		bStunned = true;
+		if (item)
+		{
+			item->meshComp->SetSimulatePhysics(true);
+			item->carrier = nullptr;
+			item = nullptr;
+		}
+	}
+}
+
+void ALlamaLlamaCharacter::Server_StunOtherLlama_Implementation(ALlamaLlamaCharacter* otherLlama)
+{
+	StunOtherLlama(otherLlama);
+}
+
+void ALlamaLlamaCharacter::StunOtherLlama(ALlamaLlamaCharacter* otherLlama)
+{
+	if (Role < ROLE_Authority)
+	{
+		Server_StunOtherLlama(otherLlama);
+	}
+	else if (Role == ROLE_Authority)
+	{
+		//bStunned = true;
+		if (bPushing)
+		{
+			//otherLlama->bStunned = true;
+			otherLlama->StunLlama();
+		}
+	}
+}
+
 bool ALlamaLlamaCharacter::Server_OnPickUp_Validate()
 {
 	return true;
@@ -242,6 +271,14 @@ void ALlamaLlamaCharacter::PickUp()
 				}
 			}
 		}
+	}
+	else if (item)
+	{
+		//drop item
+		item->meshComp->SetSimulatePhysics(true);
+		item->meshComp->AddImpulse(GetActorForwardVector() * 500);
+		item->carrier = nullptr;
+		item = nullptr;
 	}
 }
 
@@ -292,7 +329,7 @@ void ALlamaLlamaCharacter::PrimaryAction()
 		{
 			item->OnPrimaryAction();
 		}
-		else 
+		else
 		{
 			bPushing = true;
 		}
@@ -320,6 +357,10 @@ void ALlamaLlamaCharacter::SecondaryAction()
 		if (item)
 		{
 			item->OnSecondaryAction();
+		}
+		else
+		{
+
 		}
 	}
 }

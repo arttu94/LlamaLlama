@@ -22,6 +22,9 @@ ABaseItem::ABaseItem()
 	sphereComp->SetupAttachment(meshComp);
 	sphereComp->SetGenerateOverlapEvents(true);
 
+	meshComp->SetSimulatePhysics(true);
+	meshComp->CanCharacterStepUp(false);
+
 	SetReplicates(true);
 	SetReplicateMovement(true);
 }
