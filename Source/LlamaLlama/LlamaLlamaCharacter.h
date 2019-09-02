@@ -7,6 +7,7 @@
 #include "LlamaLlamaCharacter.generated.h"
 
 class ABaseItem;
+class USphereComponent;
 
 UCLASS(config=Game)
 class ALlamaLlamaCharacter : public ACharacter
@@ -83,6 +84,18 @@ protected:
 
 	UFUNCTION()
 	void SecondaryAction();
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite)
+	bool bStunned;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite)
+	bool bPushing;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Combat)
+	USphereComponent* leftHandPushSphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Combat)
+	USphereComponent* rightHandPushSphere;
 
 protected:
 	// APawn interface

@@ -12,6 +12,7 @@
 #include "Net/UnrealNetwork.h"
 
 #include "Public/BaseItem.h"
+#include "Components/SphereComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ALlamaLlamaCharacter
@@ -46,6 +47,18 @@ ALlamaLlamaCharacter::ALlamaLlamaCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+
+	leftHandPushSphere = CreateDefaultSubobject<USphereComponent>(TEXT("Left Hand Sphere"));
+	leftHandPushSphere->SetupAttachment((USceneComponent*)GetMesh(), "push_socket_L");
+	leftHandPushSphere->SetSphereRadius(5.f);
+	leftHandPushSphere->SetGenerateOverlapEvents(true);
+	leftHandPushSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+
+	rightHandPushSphere = CreateDefaultSubobject<USphereComponent>(TEXT("Right Hand Sphere"));
+	rightHandPushSphere->SetupAttachment((USceneComponent*)GetMesh(), "push_socket_R");
+	rightHandPushSphere->SetSphereRadius(5.f);
+	rightHandPushSphere->SetGenerateOverlapEvents(true);
+	rightHandPushSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
@@ -213,12 +226,24 @@ void ALlamaLlamaCharacter::PrimaryAction()
 	if (Role < ROLE_Authority)
 	{
 		Server_PrimaryAction();
+		if (item)
+		{
+
+		}
+		else
+		{
+			//bPushing = true;
+		}
 	}
 	else
 	{
 		if (item)
 		{
 			item->OnPrimaryAction();
+		}
+		else 
+		{
+			bPushing = true;
 		}
 	}
 }
@@ -253,4 +278,6 @@ void ALlamaLlamaCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ALlamaLlamaCharacter, item);
+	DOREPLIFETIME(ALlamaLlamaCharacter, bStunned);
+	DOREPLIFETIME(ALlamaLlamaCharacter, bPushing);
 }
