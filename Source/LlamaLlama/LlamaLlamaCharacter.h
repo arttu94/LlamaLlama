@@ -34,6 +34,8 @@ public:
 
 protected:
 
+	virtual void BeginPlay() override;
+
 	/** Resets HMD orientation in VR. */
 	void OnResetVR();
 
@@ -88,6 +90,12 @@ protected:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite)
 	bool bStunned;
 
+	UFUNCTION()
+	void StunOtherLlama(ALlamaLlamaCharacter* otherLlama);
+
+	UFUNCTION(Server, reliable, WithValidation)
+	void Server_StunOtherLlama(ALlamaLlamaCharacter* otherLlama);
+
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite)
 	bool bPushing;
 
@@ -96,6 +104,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Combat)
 	USphereComponent* rightHandPushSphere;
+
+	UFUNCTION()
+	void OnHandPushHit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 protected:
 	// APawn interface

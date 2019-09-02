@@ -14,6 +14,8 @@
 #include "Public/BaseItem.h"
 #include "Components/SphereComponent.h"
 
+#include "Engine.h"
+
 //////////////////////////////////////////////////////////////////////////
 // ALlamaLlamaCharacter
 
@@ -49,19 +51,28 @@ ALlamaLlamaCharacter::ALlamaLlamaCharacter()
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
 	leftHandPushSphere = CreateDefaultSubobject<USphereComponent>(TEXT("Left Hand Sphere"));
-	leftHandPushSphere->SetupAttachment((USceneComponent*)GetMesh(), "push_socket_L");
 	leftHandPushSphere->SetSphereRadius(5.f);
 	leftHandPushSphere->SetGenerateOverlapEvents(true);
 	leftHandPushSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+	leftHandPushSphere->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale,"push_socket_L");
 
 	rightHandPushSphere = CreateDefaultSubobject<USphereComponent>(TEXT("Right Hand Sphere"));
-	rightHandPushSphere->SetupAttachment((USceneComponent*)GetMesh(), "push_socket_R");
 	rightHandPushSphere->SetSphereRadius(5.f);
 	rightHandPushSphere->SetGenerateOverlapEvents(true);
 	rightHandPushSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+	rightHandPushSphere->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "push_socket_R");
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+}
+
+void ALlamaLlamaCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	leftHandPushSphere->OnComponentBeginOverlap.AddDynamic(this, &ALlamaLlamaCharacter::OnHandPushHit);
+	rightHandPushSphere->OnComponentBeginOverlap.AddDynamic(this, &ALlamaLlamaCharacter::OnHandPushHit);
+	//GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &ALlamasAndRobotsCharacter::OnOverlapBegin);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -98,7 +109,6 @@ void ALlamaLlamaCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 
 }
 
-
 void ALlamaLlamaCharacter::OnResetVR()
 {
 	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
@@ -112,6 +122,46 @@ void ALlamaLlamaCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector L
 void ALlamaLlamaCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
 {
 	StopJumping();
+}
+
+void ALlamaLlamaCharacter::OnHandPushHit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor != this)
+	{
+		if (ALlamaLlamaCharacter* llama = Cast<ALlamaLlamaCharacter>(OtherActor))
+		{
+			//llama->bStunned = true;
+			StunOtherLlama(llama);
+			//TODO add a stun function with a server_ function to set the value so it gets replicated to all 
+			GEngine->AddOnScreenDebugMessage(0, 1.0f, FColor::White, "should stun the other llama");
+		}
+	}
+}
+
+bool ALlamaLlamaCharacter::Server_StunOtherLlama_Validate(ALlamaLlamaCharacter* otherLlama)
+{
+	return true;
+}
+
+void ALlamaLlamaCharacter::Server_StunOtherLlama_Implementation(ALlamaLlamaCharacter* otherLlama)
+{
+	StunOtherLlama(otherLlama);
+}
+
+void ALlamaLlamaCharacter::StunOtherLlama(ALlamaLlamaCharacter* otherLlama)
+{
+	if (Role < ROLE_Authority)
+	{
+		Server_StunOtherLlama(otherLlama);
+	}
+	else if (Role == ROLE_Authority)
+	{
+		//bStunned = true;
+		if (bPushing)
+		{
+			otherLlama->bStunned = true;
+		}
+	}
 }
 
 void ALlamaLlamaCharacter::TurnAtRate(float Rate)
@@ -207,6 +257,7 @@ void ALlamaLlamaCharacter::OnRep_item()
 	{
 		//the item is null
 		//remove all move ignore
+		ClearComponentOverlaps();
 		GetCapsuleComponent()->ClearMoveIgnoreActors();
 	}
 }
