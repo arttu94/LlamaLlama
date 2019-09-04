@@ -8,6 +8,7 @@
 
 class ABaseItem;
 class USphereComponent;
+class UAnimMontage;
 
 UCLASS(config=Game)
 class ALlamaLlamaCharacter : public ACharacter
@@ -31,6 +32,12 @@ public:
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	UAnimMontage* pickUpMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	UAnimMontage* tossMontage;
 
 protected:
 
@@ -63,7 +70,10 @@ protected:
 	/** Handler for when a touch input stops. */
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
-	UFUNCTION(Server, reliable, WithValidation)
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayMontage(UAnimMontage* montage);
+
+	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_OnPickUp();
 
 	UFUNCTION()
@@ -75,13 +85,13 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void OnRep_item();
 
-	UFUNCTION(Server, reliable, WithValidation)
+	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_PrimaryAction();
 
 	UFUNCTION()
 	void PrimaryAction();
 
-	UFUNCTION(Server, reliable, WithValidation)
+	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SecondaryAction();
 
 	UFUNCTION()
@@ -93,13 +103,13 @@ protected:
 	UFUNCTION()
 	void StunLlama();
 
-	UFUNCTION(Server, reliable, WithValidation)
+	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_StunLlama();
 
 	UFUNCTION()
 	void StunOtherLlama(ALlamaLlamaCharacter* otherLlama);
 
-	UFUNCTION(Server, reliable, WithValidation)
+	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_StunOtherLlama(ALlamaLlamaCharacter* otherLlama);
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite)

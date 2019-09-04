@@ -138,11 +138,6 @@ void ALlamaLlamaCharacter::OnHandPushHit(UPrimitiveComponent* OverlappedComp, AA
 	}
 }
 
-bool ALlamaLlamaCharacter::Server_StunOtherLlama_Validate(ALlamaLlamaCharacter* otherLlama)
-{
-	return true;
-}
-
 void ALlamaLlamaCharacter::TurnAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
@@ -184,6 +179,12 @@ void ALlamaLlamaCharacter::MoveRight(float Value)
 	}
 }
 
+void ALlamaLlamaCharacter::Multicast_PlayMontage_Implementation(UAnimMontage* montage)
+{
+	if (montage)
+		PlayAnimMontage(montage, 1.f, "Spine");
+}
+
 bool ALlamaLlamaCharacter::Server_StunLlama_Validate()
 {
 	return true;
@@ -210,6 +211,11 @@ void ALlamaLlamaCharacter::StunLlama()
 			item = nullptr;
 		}
 	}
+}
+
+bool ALlamaLlamaCharacter::Server_StunOtherLlama_Validate(ALlamaLlamaCharacter* otherLlama)
+{
+	return true;
 }
 
 void ALlamaLlamaCharacter::Server_StunOtherLlama_Implementation(ALlamaLlamaCharacter* otherLlama)
@@ -270,6 +276,11 @@ void ALlamaLlamaCharacter::PickUp()
 						this->item = overlappingItem;
 						this->item->OnPickUp(this);
 						OnRep_item();
+						if (pickUpMontage)
+						{
+							PlayAnimMontage(pickUpMontage, 1.f, "Spine");
+							Multicast_PlayMontage(pickUpMontage);
+						}
 						break;
 					}
 				}
@@ -285,8 +296,12 @@ void ALlamaLlamaCharacter::PickUp()
 		else
 		{
 			//drop item
+			if (tossMontage)
+			{
+				PlayAnimMontage(tossMontage, 1.f, "Spine");
+				Multicast_PlayMontage(tossMontage);
+			}
 			item->meshComp->SetSimulatePhysics(true);
-			//item->meshComp->AddImpulse(GetActorForwardVector() * 500);
 			item->carrier = nullptr;
 			item = nullptr;
 		}
