@@ -251,11 +251,14 @@ void ALlamaLlamaCharacter::PickUp()
 
 	if (this->item == nullptr)
 	{
+		//ABaseItem* closestItem;
 		for (auto& actor : actors)
 		{
 			//if cast, it's an item you can pickup
 			if (ABaseItem * overlappingItem = Cast<ABaseItem>(actor))
 			{
+				//FVector
+
 				if (overlappingItem->carrier == nullptr)
 				{
 					if (Role < ROLE_Authority)
@@ -267,6 +270,7 @@ void ALlamaLlamaCharacter::PickUp()
 						this->item = overlappingItem;
 						this->item->OnPickUp(this);
 						OnRep_item();
+						break;
 					}
 				}
 			}
@@ -274,11 +278,18 @@ void ALlamaLlamaCharacter::PickUp()
 	}
 	else if (item)
 	{
-		//drop item
-		item->meshComp->SetSimulatePhysics(true);
-		item->meshComp->AddImpulse(GetActorForwardVector() * 500);
-		item->carrier = nullptr;
-		item = nullptr;
+		if (Role < ROLE_Authority)
+		{
+			Server_OnPickUp();
+		}
+		else
+		{
+			//drop item
+			item->meshComp->SetSimulatePhysics(true);
+			//item->meshComp->AddImpulse(GetActorForwardVector() * 500);
+			item->carrier = nullptr;
+			item = nullptr;
+		}
 	}
 }
 
