@@ -324,6 +324,7 @@ void ALlamaLlamaCharacter::OnRep_item()
 		//there is an item being held
 		//add move ignore 
 		MoveIgnoreActorAdd(item);
+		GetCharacterMovement()->MaxWalkSpeed = 500;
 	}
 	else
 	{
@@ -331,6 +332,7 @@ void ALlamaLlamaCharacter::OnRep_item()
 		//remove all move ignore
 		ClearComponentOverlaps();
 		GetCapsuleComponent()->ClearMoveIgnoreActors();
+		GetCharacterMovement()->MaxWalkSpeed = 600;
 	}
 }
 
