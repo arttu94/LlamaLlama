@@ -79,6 +79,9 @@ protected:
 	UFUNCTION()
 	void PickUp();
 
+	UFUNCTION()
+	void TossItem();
+
 	UPROPERTY(ReplicatedUsing=OnRep_item, VisibleAnywhere, BlueprintReadWrite)
 	ABaseItem* item;
 

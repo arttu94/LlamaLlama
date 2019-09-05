@@ -13,6 +13,7 @@
 
 #include "Public/BaseItem.h"
 #include "Components/SphereComponent.h"
+#include "TimerManager.h"
 
 #include "Engine.h"
 
@@ -240,6 +241,14 @@ void ALlamaLlamaCharacter::StunOtherLlama(ALlamaLlamaCharacter* otherLlama)
 	}
 }
 
+void ALlamaLlamaCharacter::TossItem()
+{
+	item->meshComp->SetSimulatePhysics(true);
+	item->meshComp->AddImpulse(GetActorForwardVector() * 300);
+	item->carrier = nullptr;
+	item = nullptr;
+}
+
 bool ALlamaLlamaCharacter::Server_OnPickUp_Validate()
 {
 	return true;
@@ -296,14 +305,14 @@ void ALlamaLlamaCharacter::PickUp()
 		else
 		{
 			//drop item
+			float t = tossMontage->CalculateSequenceLength() - 0.1f;
 			if (tossMontage)
 			{
 				PlayAnimMontage(tossMontage, 1.f, "Spine");
 				Multicast_PlayMontage(tossMontage);
 			}
-			item->meshComp->SetSimulatePhysics(true);
-			item->carrier = nullptr;
-			item = nullptr;
+			FTimerHandle UnusedHandle;
+			GetWorldTimerManager().SetTimer(UnusedHandle, this, &ALlamaLlamaCharacter::TossItem, 0.3f, false);
 		}
 	}
 }
